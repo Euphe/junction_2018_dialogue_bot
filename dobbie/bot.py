@@ -1,3 +1,4 @@
+import requests
 import re
 from telegram.ext import Updater, RegexHandler, CommandHandler
 from . import config
@@ -21,9 +22,37 @@ manager_users = [ ]
 DEFAULT_LOCATION = 'Dipoli'
 
 
-USER_LOCATIONS = {
-    389451119: 'Dipoli, floor 2, presentation area'
+user_macs = {
+
 }
+
+
+class NoMac(Exception):
+    pass
+
+
+def get_location_by_mac(mac):
+    url = f'https://cmxproxy.aalto.fi/api/location/v3/clients?macAddress={mac}'
+    response = requests.get(url)
+    data = response.json()
+    device = data[0]
+    location = ", ".join(device["locationMapHierarchy"].split('>'))
+    return location
+
+
+def get_user_location(user_id):
+    if not user_id in user_macs:
+        raise(NoMac())
+    mac = user_macs[user_id]
+    return get_location_by_mac(mac)
+
+
+def mac_handler(bot, update, args=None, **kwargs):
+    if not args:
+        update.message.reply_text('Mac required')
+    mac = args[0]
+    user_macs[update.message.from_user.id] = mac
+    update.message.reply_text('Mac address set')
 
 
 def manager_handler(bot, update):
@@ -46,7 +75,18 @@ def handle_manager_message(bot, update, args=None, **kwargs):
 
 def anything_handler(bot, update, args=None, **kwargs):
     user_id = update.message.from_user.id
-    user_location = USER_LOCATIONS.get(user_id, DEFAULT_LOCATION)
+    try:
+        user_location = get_user_location(user_id)
+    except NoMac:
+        update.message.reply_text('Sorry, we are in debug mode. '
+                                  'We could not get your mac address. '
+                                  'Use `/mac <address>` to set it.')
+        return
+    except Exception as e:
+        update.message.reply_text('Could not fetch your location data. '
+                                  'Perhaps your mac address is wrong.')
+        return
+
     if user_id in [m.user_id for m in manager_users]:
         handle_manager_message(bot, update, args=None, **kwargs)
     update.message.reply_text(f'By my information you are at {user_location}')
@@ -83,6 +123,7 @@ class Bot:
 
 def create_bot(api_key):
     bot = Bot(api_key)
+    bot.updater.dispatcher.add_handler(CommandHandler('mac', mac_handler, pass_args=True))
     bot.updater.dispatcher.add_handler(CommandHandler('manager', manager_handler))
     bot.updater.dispatcher.add_handler(RegexHandler(TEXT_REGEX, anything_handler))
     return bot
