@@ -22,7 +22,7 @@ DEFAULT_LOCATION = 'Dipoli'
 
 
 USER_LOCATIONS = {
-    389451119: 'Dipoli, floor 2, presentation area'
+    389451119: 'Dipoli, floor 2, near table K7',
 }
 
 

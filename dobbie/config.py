@@ -7,5 +7,5 @@ class Configuration(BaseEnvironConfig):
 
     API_KEY = ConfigField(required=True)
 
-    TARGET_QUERY = ConfigField(default='presentation')
-    TARGET_QUERY_RESPONSE = ConfigField(default='Presentations are happening at main stage')
+    TARGET_QUERY = ConfigField(default='dobbie')
+    TARGET_QUERY_RESPONSE = ConfigField(default='Dobbie team is presenting in Dipoli, floor 2, near table K7')
